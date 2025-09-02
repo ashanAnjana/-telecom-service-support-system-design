@@ -13,11 +13,14 @@ Table customers {
   first_name varchar(100) [not null]
   last_name varchar(100) [not null]
   email varchar(255) [unique, not null]
-  phone varchar(20)
+  phone varchar(20) [not null]
   date_of_birth date [not null]
-  address text
-  created_at timestamp [default: `CURRENT_TIMESTAMP`]
-  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    email [unique]
+    phone
+  }
   
   Note: 'Customer information for SIM activation'
 }
@@ -25,14 +28,15 @@ Table customers {
 Table sim_cards {
   id int [pk, increment]
   iccid varchar(20) [unique, not null]
-  imsi varchar(15) [unique]
   puk_code varchar(8) [not null]
   pin_code varchar(4) [not null]
-  status enum('inactive', 'active', 'suspended', 'terminated') [default: 'inactive']
-  batch_number varchar(50)
-  manufactured_date date
-  created_at timestamp [default: `CURRENT_TIMESTAMP`]
-  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  status enum('available', 'assigned', 'active') [default: 'available']
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    iccid [unique]
+    status
+  }
   
   Note: 'Physical SIM card details'
 }
@@ -40,12 +44,13 @@ Table sim_cards {
 Table mobile_numbers {
   id int [pk, increment]
   number varchar(15) [unique, not null]
-  country_code varchar(5) [not null]
-  area_code varchar(10)
-  status enum('available', 'assigned', 'reserved', 'blocked') [default: 'available']
-  number_type enum('prepaid', 'postpaid') [not null]
-  created_at timestamp [default: `CURRENT_TIMESTAMP`]
-  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  status enum('available', 'assigned') [default: 'available']
+  created_at timestamp [default: `now()`]
+  
+  indexes {
+    number [unique]
+    status
+  }
   
   Note: 'Available mobile numbers for assignment'
 }
@@ -54,50 +59,62 @@ Table document_types {
   id int [pk, increment]
   name varchar(100) [not null]
   code varchar(20) [unique, not null]
-  description text
-  is_mandatory boolean [default: false]
-  regulatory_requirement text
-  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  is_required boolean [default: true]
+  
+  indexes {
+    code [unique]
+  }
   
   Note: 'Types of identity documents accepted'
 }
 
 Table customer_documents {
   id int [pk, increment]
-  customer_id int [ref: > customers.id]
-  document_type_id int [ref: > document_types.id]
+  customer_id int [ref: > customers.id, not null]
+  document_type_id int [ref: > document_types.id, not null]
   document_number varchar(100) [not null]
-  document_file_path varchar(500)
-  issue_date date
-  expiry_date date
-  issuing_authority varchar(200)
-  verification_status enum('pending', 'verified', 'rejected', 'expired') [default: 'pending']
-  verified_at timestamp [null]
-  verified_by int [ref: > users.id]
+  file_path varchar(500)
+  verification_status enum('pending', 'verified', 'rejected') [default: 'pending']
+  verified_at timestamp
+  verified_by varchar(100)
   rejection_reason text
-  created_at timestamp [default: `CURRENT_TIMESTAMP`]
-  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  regulatory_check_passed boolean [default: false]
+  compliance_notes text
+  created_at timestamp [default: `now()`]
   
-  Note: 'Customer identity documents for verification'
+  indexes {
+    customer_id
+    verification_status
+    regulatory_check_passed
+    (customer_id, document_type_id) [unique]
+  }
+  
+  Note: 'Customer identity documents with regulatory validation'
 }
 
 Table sim_activations {
   id int [pk, increment]
-  customer_id int [ref: > customers.id]
-  sim_card_id int [ref: > sim_cards.id]
-  mobile_number_id int [ref: > mobile_numbers.id]
-  activation_status enum('pending', 'document_verification', 'approved', 'activated', 'rejected') [default: 'pending']
-  request_date timestamp [default: `CURRENT_TIMESTAMP`]
-  activation_date timestamp [null]
-  processed_by int [ref: > users.id]
+  customer_id int [ref: > customers.id, not null]
+  sim_card_id int [ref: > sim_cards.id, not null]
+  mobile_number_id int [ref: > mobile_numbers.id, not null]
+  status enum('pending', 'verified', 'activated', 'rejected') [default: 'pending']
+  request_date timestamp [default: `now()`]
+  activation_date timestamp
   rejection_reason text
-  regulatory_check_status enum('pending', 'passed', 'failed') [default: 'pending']
-  regulatory_check_date timestamp [null]
-  notes text
-  created_at timestamp [default: `CURRENT_TIMESTAMP`]
-  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  processed_by varchar(100)
+  process_notes text
+  last_status_change timestamp [default: `now()`]
+  created_at timestamp [default: `now()`]
   
-  Note: 'SIM activation requests and their status'
+  indexes {
+    customer_id
+    sim_card_id [unique]
+    mobile_number_id [unique]
+    status
+    last_status_change
+  }
+  
+  Note: 'SIM activation requests with basic audit tracking'
 }
 
 Table users {
@@ -167,7 +184,7 @@ Table indexes {
   sim_cards_status: sim_cards.status
   mobile_numbers_number: mobile_numbers.number
   mobile_numbers_status: mobile_numbers.status
-  sim_activations_status: sim_activations.activation_status
+  sim_activations_status: sim_activations.status
   sim_activations_customer: sim_activations.customer_id
   customer_documents_customer: customer_documents.customer_id
   customer_documents_status: customer_documents.verification_status

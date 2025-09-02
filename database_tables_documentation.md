@@ -1,15 +1,15 @@
 # Database Tables Documentation
 
-## Telecom Service Support System - Table Functions
+## Simplified Telecom SIM Activation System - Table Functions
 
-This document provides a detailed explanation of each table's function in the telecom SIM activation system database schema.
+This document provides a detailed explanation of each table's function in the simplified telecom SIM activation system database schema.
 
 ---
 
 ## **Core Entity Tables**
 
 ### **1. `customers`**
-**Function**: Stores customer personal information and contact details
+**Function**: Stores essential customer information for SIM activation
 
 - **Primary Purpose**: Customer registration and identity management
 - **Key Fields**: 
@@ -17,7 +17,6 @@ This document provides a detailed explanation of each table's function in the te
   - `email` - Unique contact identifier
   - `phone` - Contact number
   - `date_of_birth` - Age verification for eligibility
-  - `address` - Customer location information
 - **Business Role**: Foundation for all SIM activation requests; validates customer eligibility
 - **Relationships**: Links to `customer_documents` and `sim_activations`
 - **Constraints**: `email` must be unique
@@ -28,11 +27,9 @@ CREATE TABLE customers (
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    phone VARCHAR(20),
+    phone VARCHAR(20) NOT NULL,
     date_of_birth DATE NOT NULL,
-    address TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 - **create query**: 
@@ -42,55 +39,43 @@ VALUES ('John', 'Doe', 'john.doe@example.com', '1234567890', '1990-01-01', '123 
 ``` 
 
 ### **2. `sim_cards`** 
-**Function**: Physical SIM card inventory management
+**Function**: Simplified SIM card inventory management
 
-- **Primary Purpose**: Track individual SIM cards from manufacturing to activation
+- **Primary Purpose**: Track individual SIM cards for activation
 - **Key Fields**:
   - `iccid` - Unique SIM card identifier (20 digits)
-  - `imsi` - International Mobile Subscriber Identity
   - `puk_code`, `pin_code` - Security codes
-  - `status` - Lifecycle state (inactive, active, suspended, terminated)
-  - `batch_number` - Manufacturing batch tracking
-- **Business Role**: Manages SIM lifecycle and inventory control
+  - `status` - Simple lifecycle state (available, assigned, active)
+- **Business Role**: Manages basic SIM inventory and assignment
 - **Relationships**: Links to `sim_activations`
 - **create table query**: 
 ```sql
 CREATE TABLE sim_cards (
     id INT PRIMARY KEY AUTO_INCREMENT,
     iccid VARCHAR(20) UNIQUE NOT NULL,
-    imsi VARCHAR(15),
     puk_code VARCHAR(8) NOT NULL,
     pin_code VARCHAR(4) NOT NULL,
-    status ENUM('inactive', 'active', 'suspended', 'terminated') DEFAULT 'inactive',
-    batch_number VARCHAR(50),
-    manufactured_date DATE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    status ENUM('available', 'assigned', 'active') DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
 ### **3. `mobile_numbers`**
-**Function**: Available phone number pool management
+**Function**: Simplified mobile number pool management
 
 - **Primary Purpose**: Assign and track mobile numbers for customers
 - **Key Fields**:
   - `number` - The actual phone number
-  - `country_code`, `area_code` - Geographic identifiers
-  - `status` - Availability (available, assigned, reserved, blocked)
-  - `number_type` - Service type (prepaid, postpaid)
-- **Business Role**: Ensures unique number assignment and supports different service plans
+  - `status` - Simple availability (available, assigned)
+- **Business Role**: Ensures unique number assignment
 - **Relationships**: Links to `sim_activations`
 - **create table query**: 
 ```sql
 CREATE TABLE mobile_numbers (
     id INT PRIMARY KEY AUTO_INCREMENT,
     number VARCHAR(15) UNIQUE NOT NULL,
-    country_code VARCHAR(5) NOT NULL,
-    area_code VARCHAR(10),
-    status ENUM('available', 'assigned', 'reserved', 'blocked') DEFAULT 'available',
-    number_type ENUM('prepaid', 'postpaid') NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    status ENUM('available', 'assigned') DEFAULT 'available',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -103,9 +88,8 @@ CREATE TABLE mobile_numbers (
 - **Key Fields**:
   - `name` - Document type name (e.g., "Passport", "NIC")
   - `code` - Unique identifier code
-  - `is_mandatory` - Whether document is required
-  - `regulatory_requirement` - Legal compliance notes
-- **Business Role**: Standardizes document requirements across different regions/regulations
+  - `is_required` - Whether document is required
+- **Business Role**: Standardizes document requirements
 - **Relationships**: Links to `customer_documents`
 - **create table query**: 
 ```sql
@@ -113,10 +97,7 @@ CREATE TABLE document_types (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     code VARCHAR(20) UNIQUE NOT NULL,
-    is_mandatory BOOLEAN DEFAULT FALSE,
-    regulatory_requirement TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    is_required BOOLEAN DEFAULT TRUE
 );
 ```
 - **insert query**: 
@@ -128,19 +109,21 @@ VALUES ('Passport', 'PASS', TRUE, 'Required for international travel'),
 ```
 
 ### **5. `customer_documents`**
-**Function**: Stores uploaded customer identity documents
+**Function**: Stores uploaded customer identity documents with regulatory compliance
 
 - **Primary Purpose**: Link customers to their submitted verification documents
 - **Key Fields**:
   - `customer_id` - Links to customer
   - `document_type_id` - Type of document
   - `document_number` - Official document number
-  - `document_file_path` - File storage location
-  - `issue_date`, `expiry_date` - Document validity period
-  - `verification_status` - Processing state (pending, verified, rejected, expired)
+  - `file_path` - File storage location
+  - `verification_status` - Processing state (pending, verified, rejected)
   - `verified_by` - Staff member who processed
-- **Business Role**: Central hub for document verification workflow
-- **Relationships**: Links `customers` to `document_types`, connects to `document_validations`
+  - `rejection_reason` - Reason for rejection
+  - `regulatory_check_passed` - Compliance validation flag
+  - `compliance_notes` - Regulatory validation notes
+- **Business Role**: Central hub for document verification with regulatory compliance
+- **Relationships**: Links `customers` to `document_types`
 
 ---
 - **create table query**: 
@@ -150,16 +133,14 @@ CREATE TABLE customer_documents (
     customer_id INT NOT NULL,
     document_type_id INT NOT NULL,
     document_number VARCHAR(100) NOT NULL,
-    document_file_path VARCHAR(500),
-    issue_date DATE,
-    expiry_date DATE,
-    issuing_authority VARCHAR(200),
-    verification_status ENUM('pending', 'verified', 'rejected', 'expired') DEFAULT 'pending',
+    file_path VARCHAR(500),
+    verification_status ENUM('pending', 'verified', 'rejected') DEFAULT 'pending',
     verified_at TIMESTAMP NULL,
-    verified_by INT,
+    verified_by VARCHAR(100),
     rejection_reason TEXT,
+    regulatory_check_passed BOOLEAN DEFAULT FALSE,
+    compliance_notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
     FOREIGN KEY (document_type_id) REFERENCES document_types(id)
 );
@@ -172,18 +153,19 @@ VALUES (1, 1, '123456789', 'path/to/document.pdf', '2023-01-01', '2024-01-01', '
 ## **Process Management Tables**
 
 ### **6. `sim_activations`** (main table)
-**Function**: **Central workflow orchestrator** for SIM activation process
+**Function**: **Central workflow orchestrator** for SIM activation process with audit tracking
 
 - **Primary Purpose**: Manages complete activation lifecycle from request to completion
 - **Key Fields**:
   - `customer_id`, `sim_card_id`, `mobile_number_id` - Core entity links
-  - `activation_status` - Workflow state (pending, document_verification, approved, activated, rejected)
-  - `regulatory_check_status` - Compliance verification state
+  - `status` - Workflow state (pending, verified, activated, rejected)
   - `request_date`, `activation_date` - Timeline tracking
-  - `processed_by` - Staff member handling request
+  - `processed_by` - Staff member handling request (audit field)
+  - `process_notes` - Processing notes (audit field)
+  - `last_status_change` - Timestamp of last status update (audit field)
   - `rejection_reason` - Failure explanation
-- **Business Role**: **Most critical table** - coordinates entire activation workflow
-- **Relationships**: Central hub connecting customers, SIM cards, mobile numbers, and users
+- **Business Role**: **Most critical table** - coordinates entire activation workflow with basic audit tracking
+- **Relationships**: Central hub connecting customers, SIM cards, and mobile numbers
 - **create table query**: 
 ```sql
 CREATE TABLE sim_activations (
@@ -191,20 +173,17 @@ CREATE TABLE sim_activations (
     customer_id INT NOT NULL,
     sim_card_id INT NOT NULL,
     mobile_number_id INT NOT NULL,
-    activation_status ENUM('pending', 'document_verification', 'approved', 'activated', 'rejected') DEFAULT 'pending',
+    status ENUM('pending', 'verified', 'activated', 'rejected') DEFAULT 'pending',
     request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     activation_date TIMESTAMP NULL,
-    processed_by INT,
     rejection_reason TEXT,
-    regulatory_check_status ENUM('pending', 'passed', 'failed') DEFAULT 'pending',
-    regulatory_check_date TIMESTAMP NULL,
-    notes TEXT,
+    processed_by VARCHAR(100),
+    process_notes TEXT,
+    last_status_change TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES customers(id),
     FOREIGN KEY (sim_card_id) REFERENCES sim_cards(id),
-    FOREIGN KEY (mobile_number_id) REFERENCES mobile_numbers(id),
-    FOREIGN KEY (processed_by) REFERENCES users(id)
+    FOREIGN KEY (mobile_number_id) REFERENCES mobile_numbers(id)
 );
 ```
 - **insert query**: 
@@ -330,6 +309,11 @@ CREATE TABLE document_validations (
     FOREIGN KEY (customer_document_id) REFERENCES customer_documents(id),
     FOREIGN KEY (regulatory_rule_id) REFERENCES regulatory_rules(id)
 );
+```
+- **insert query**: 
+```sql
+INSERT INTO document_validations (customer_document_id, regulatory_rule_id, validation_status, validation_result, validated_at, validated_by)
+VALUES (1, 1, 'pending', 'Validation in progress', '2023-01-01', 1);
 ```
 ---
 

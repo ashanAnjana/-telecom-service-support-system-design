@@ -1,239 +1,109 @@
-# Telecom Service Support System Design
+# Simplified Telecom SIM Activation System
 
 ## Overview
 
-This project presents a comprehensive design for a **Telecom Service Support System** focused on **SIM card activation workflow**. The system handles the complete lifecycle from SIM purchase to activation, including customer document verification and regulatory compliance checks.
+A streamlined design for **SIM card activation workflow** focusing on the essential components. The system handles the core process: customer purchases SIM → provides identity documents → system validates → SIM is activated.
 
-## System Architecture
-
-### Core Workflow
+## Core Workflow
 1. **Customer Registration** - Customer provides personal information
-2. **Document Submission** - Customer uploads identity documents  
-3. **SIM Assignment** - System assigns SIM card and mobile number
+2. **Document Submission** - Customer uploads proof-of-identity documents  
+3. **SIM & Number Assignment** - System maps SIM card to mobile number
 4. **Document Verification** - System validates documents against regulatory requirements
-5. **Regulatory Compliance** - Automated checks against telecom regulations
-6. **Activation** - SIM card is activated upon successful verification
+5. **Activation** - SIM card is activated and ready for use
 
 ## Database Design
 
 ### Key Entities
 
 #### **Customers**
-- Stores customer personal information
+- Essential customer information (name, email, phone, DOB)
 - Links to documents and activation requests
-- Validates age eligibility for SIM activation
 
 #### **SIM Cards** 
-- Physical SIM card inventory management
-- Tracks ICCID, IMSI, PUK/PIN codes
-- Manages activation status lifecycle
+- Physical SIM inventory with ICCID, PUK/PIN codes
+- Simple status tracking (available, assigned, active)
 
 #### **Mobile Numbers**
-- Available number pool management
-- Supports prepaid/postpaid classification
-- Handles number assignment and release
+- Available number pool
+- Basic assignment status (available, assigned)
 
 #### **Document Management**
-- **DocumentTypes**: Defines accepted identity documents
-- **CustomerDocuments**: Stores uploaded customer documents
-- **DocumentValidations**: Tracks validation against regulatory rules
+- **DocumentTypes**: Accepted identity document types
+- **CustomerDocuments**: Uploaded customer documents with verification status
 
 #### **Activation Process**
-- **SimActivations**: Central entity managing activation workflow
-- **ActivationAuditLog**: Complete audit trail for compliance
-- **Users**: System operators with role-based permissions
+- **SimActivations**: Central workflow entity linking customer, SIM, and number
+- Simple status progression (pending → verified → activated)
 
-#### **Regulatory Compliance**
-- **RegulatoryRules**: Configurable validation rules
-- **DocumentValidations**: Individual validation results
-- Supports country-specific requirements
-
-### Database Design Decisions
-
-#### **Normalization Strategy**
-- **3NF compliance** to eliminate data redundancy
-- Separate entities for reusable components (DocumentTypes, RegulatoryRules)
-- Audit logging for regulatory compliance requirements
-
-#### **Status Management**
-- **Enum-based status fields** for data integrity
-- Clear state transitions for workflow management
-- Separate status tracking for different process stages
-
-#### **Scalability Considerations**
-- **Indexed fields** on frequently queried columns
-- **Timestamp tracking** for all entities
-- **Soft delete capability** through status fields
+### Design Principles
+- **Simplicity**: Focus on core SIM activation workflow
+- **Clarity**: Clear entity relationships and responsibilities
+- **Maintainability**: Minimal complexity while meeting requirements
 
 ## Object-Oriented Design
 
 ### Core Domain Classes
 
 #### **Entity Classes**
-- **Customer**: Manages customer data and eligibility checks
-- **SimCard**: Handles SIM lifecycle and status management  
-- **MobileNumber**: Number pool management and assignment
-- **SimActivation**: Central workflow orchestrator
+- **Customer**: Customer data and eligibility validation
+- **SimCard**: SIM inventory and status management  
+- **MobileNumber**: Number pool and assignment
+- **DocumentType**: Identity document definitions
+- **CustomerDocument**: Document storage and verification
+- **SimActivation**: Central activation workflow coordinator
 
-#### **Service Layer Architecture**
-- **SimActivationService**: Main business logic coordinator
-- **DocumentValidationService**: Document verification engine
-- **RegulatoryComplianceService**: Regulatory rule enforcement
-- **AuditService**: Compliance tracking and reporting
-
-#### **Value Objects**
-- **ValidationResult**: Encapsulates validation outcomes
-- **Enums**: Type-safe status and role definitions
+#### **Service Layer**
+- **ActivationService**: Main business logic for SIM activation process
 
 ### Design Patterns Applied
 
-#### **Repository Pattern**
-- Data access abstraction for each entity
-- Enables testability and database independence
-- Clean separation of concerns
-
 #### **Service Layer Pattern**  
-- Business logic encapsulation
-- Transaction boundary management
-- Cross-cutting concern handling
-
-#### **Strategy Pattern**
-- Pluggable validation rules
-- Country-specific regulatory compliance
-- Extensible document verification logic
-
-#### **Observer Pattern**
-- Audit logging for state changes
-- Event-driven status updates
-- Compliance reporting triggers
-
-## PHP Implementation Considerations
-
-### **Framework Compatibility**
-- Designed for modern PHP frameworks (Laravel, Symfony)
-- PSR-4 autoloading compliance
-- Dependency injection ready
-
-### **Database Integration**
-- **MySQL optimization** with proper indexing
-- **Eloquent ORM** compatible relationships
-- **Migration-friendly** schema design
-
-### **Security Features**
-- **Password hashing** for user authentication
-- **Role-based access control** (RBAC)
-- **Document file security** with path validation
-- **Audit logging** for compliance tracking
+- Encapsulates business logic in `ActivationService`
+- Coordinates between entities for activation workflow
+- Provides clear API for activation operations
 
 ## Key Design Assumptions
 
 ### **Business Rules**
-1. **One SIM per activation request** - Simplifies workflow management
-2. **Document verification required** - Regulatory compliance mandatory
-3. **Manual approval process** - Human oversight for critical decisions
-4. **Audit trail mandatory** - Complete tracking for compliance
+1. **One SIM per activation** - Each activation links one customer, one SIM, one number
+2. **Document verification required** - Identity documents must be verified before activation
+3. **Simple status progression** - Clear workflow states (pending → verified → activated)
 
 ### **Technical Assumptions**
-1. **MySQL database** - Relational data with ACID compliance
-2. **PHP 8.0+** - Modern language features and type safety
-3. **Web-based interface** - Browser-accessible operator dashboard
-4. **File upload capability** - Document storage and retrieval
+1. **MySQL database** - Relational data with referential integrity
+2. **PHP object-oriented design** - Modern OOP principles
+3. **File upload capability** - Document storage for verification
 
-### **Regulatory Assumptions**
-1. **Country-specific rules** - Configurable validation logic
-2. **Document expiry tracking** - Automatic validation of document validity
-3. **Compliance reporting** - Audit trail for regulatory authorities
-4. **Data retention policies** - Long-term storage for compliance
+### **Simplification Decisions**
+1. **Removed complex audit trails** - Basic tracking in activation entity
+2. **Eliminated user management complexity** - Focus on core workflow
+3. **Simplified regulatory compliance** - Basic document validation
+4. **Removed advanced features** - No bulk processing, notifications, etc.
 
-## Scalability & Performance
+## System Components
 
-### **Database Optimization**
-- **Strategic indexing** on query-heavy columns
-- **Partitioning strategy** for large audit tables
-- **Read replicas** for reporting queries
+### **Database Schema** (`schema.dbml`)
+- **6 core tables**: customers, sim_cards, mobile_numbers, document_types, customer_documents, sim_activations
+- **Audit tracking**: Basic fields in sim_activations (processed_by, process_notes, last_status_change)
+- **Regulatory compliance**: Document validation fields (verified_by, regulatory_check_passed, compliance_notes)
+- **Essential relationships**: Foreign keys linking core workflow entities
 
-### **Application Architecture**
-- **Service-oriented design** for horizontal scaling
-- **Caching strategy** for regulatory rules and document types
-- **Queue-based processing** for heavy validation tasks
-
-### **Monitoring & Maintenance**
-- **Performance metrics** tracking
-- **Error logging** and alerting
-- **Database maintenance** procedures
-
-## Future Enhancements
-
-### **Advanced Features**
-- **AI-powered document verification** using OCR
-- **Real-time status notifications** via WebSocket
-- **Mobile app integration** for customer self-service
-- **Bulk activation processing** for enterprise customers
-
-### **Integration Capabilities**
-- **Third-party identity verification** services
-- **Government database integration** for document validation
-- **SMS gateway integration** for activation notifications
-- **CRM system integration** for customer management
-
-## Setup Instructions
-
-### **Prerequisites**
-- PHP 8.0 or higher
-- MySQL 8.0 or higher  
-- Composer for dependency management
-- Web server (Apache/Nginx)
-
-### **Database Setup**
-1. Import the `schema.dbml` using DBML tools or convert to SQL
-2. Run database migrations to create tables
-3. Seed initial data (document types, regulatory rules)
-4. Create initial admin user
-
-### **Application Configuration**
-1. Configure database connection parameters
-2. Set up file upload directories with proper permissions
-3. Configure logging and audit settings
-4. Set up role-based access control
-
-## Testing Strategy
-
-### **Unit Testing**
-- Entity class validation logic
-- Service layer business rules
-- Regulatory compliance algorithms
-
-### **Integration Testing**
-- Database operations and transactions
-- File upload and document handling
-- External service integrations
-
-### **End-to-End Testing**
-- Complete activation workflow
-- User role and permission validation
-- Audit logging verification
-
-## Compliance & Security
-
-### **Data Protection**
-- **GDPR compliance** for customer data handling
-- **Data encryption** for sensitive information
-- **Access logging** for security monitoring
-
-### **Regulatory Compliance**
-- **Telecom regulations** adherence
-- **Identity verification** standards
-- **Audit trail** maintenance for regulatory reporting
+### **Class Diagram** (`class_diagram.puml`)
+- **6 domain classes**: Core entities with audit and compliance capabilities
+- **1 service class**: `ActivationService` with regulatory and audit methods
+- **4 enums**: Type-safe status management
+- **Enhanced methods**: Audit tracking and regulatory compliance support
 
 ---
 
 ## File Structure
 ```
 /
-├── schema.dbml              # Database schema definition
-├── class_diagram.mermaid    # Object-oriented class diagram  
-├── README.md               # This documentation
-└── diagrams/               # Optional: rendered diagram images
+├── schema.dbml                    # Simplified database schema
+├── class_diagram.puml            # Streamlined class diagram  
+├── class_diagram.mermaid         # Alternative diagram format
+├── README.md                     # This documentation
+└── database_tables_documentation.md  # Detailed table descriptions
 ```
 
-This design provides a robust, scalable foundation for telecom SIM activation services while maintaining regulatory compliance and operational efficiency.
+This simplified design maintains the essential SIM activation workflow while removing unnecessary complexity, making it easier to understand and implement.

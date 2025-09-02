@@ -1,5 +1,6 @@
 @startuml
 
+
 class Customer {
     -int id
     -string firstName
@@ -7,74 +8,51 @@ class Customer {
     -string email
     -string phone
     -DateTime dateOfBirth
-    -string address
     -DateTime createdAt
-    -DateTime updatedAt
     +__construct(firstName, lastName, email, dateOfBirth)
     +getId() : int
     +getFullName() : string
     +getEmail() : string
-    +addDocument(Document document) : void
-    +getDocuments() : array
     +isEligibleForActivation() : bool
-    +validateAge() : bool
 }
 
 class SimCard {
     -int id
     -string iccid
-    -string imsi
     -string pukCode
     -string pinCode
     -SimStatus status
-    -string batchNumber
-    -DateTime manufacturedDate
     -DateTime createdAt
-    -DateTime updatedAt
     +__construct(iccid, pukCode, pinCode)
     +getId() : int
     +getIccid() : string
     +isAvailable() : bool
     +activate() : void
-    +suspend() : void
-    +terminate() : void
     +getStatus() : SimStatus
-    +setStatus(SimStatus status) : void
 }
 
 class MobileNumber {
     -int id
     -string number
-    -string countryCode
-    -string areaCode
     -NumberStatus status
-    -NumberType type
     -DateTime createdAt
-    -DateTime updatedAt
-    +__construct(number, countryCode, type)
+    +__construct(number)
     +getId() : int
     +getNumber() : string
     +isAvailable() : bool
     +assign() : void
-    +release() : void
-    +getFormattedNumber() : string
-    +validateFormat() : bool
 }
 
 class DocumentType {
     -int id
     -string name
     -string code
-    -string description
-    -bool isMandatory
-    -string regulatoryRequirement
-    -DateTime createdAt
-    +__construct(name, code, isMandatory)
+    -bool isRequired
+    +__construct(name, code, isRequired)
     +getId() : int
     +getName() : string
     +getCode() : string
-    +isMandatory() : bool
-    +getRegulatoryRequirement() : string
+    +isRequired() : bool
 }
 
 class CustomerDocument {
@@ -82,24 +60,22 @@ class CustomerDocument {
     -int customerId
     -int documentTypeId
     -string documentNumber
-    -string documentFilePath
-    -DateTime issueDate
-    -DateTime expiryDate
-    -string issuingAuthority
+    -string filePath
     -VerificationStatus verificationStatus
     -DateTime verifiedAt
-    -int verifiedBy
+    -string verifiedBy
     -string rejectionReason
+    -bool regulatoryCheckPassed
+    -string complianceNotes
     -DateTime createdAt
-    -DateTime updatedAt
     +__construct(customerId, documentTypeId, documentNumber)
     +getId() : int
     +getDocumentNumber() : string
-    +isExpired() : bool
-    +verify(User user) : void
-    +reject(User user, string reason) : void
+    +verify(string verifiedBy) : void
+    +reject(string reason, string verifiedBy) : void
     +getVerificationStatus() : VerificationStatus
-    +uploadFile(string filePath) : void
+    +performRegulatoryCheck() : bool
+    +isCompliant() : bool
 }
 
 class SimActivation {
@@ -107,176 +83,50 @@ class SimActivation {
     -int customerId
     -int simCardId
     -int mobileNumberId
-    -ActivationStatus activationStatus
+    -ActivationStatus status
     -DateTime requestDate
     -DateTime activationDate
-    -int processedBy
     -string rejectionReason
-    -RegulatoryStatus regulatoryCheckStatus
-    -DateTime regulatoryCheckDate
-    -string notes
+    -string processedBy
+    -string processNotes
+    -DateTime lastStatusChange
     -DateTime createdAt
-    -DateTime updatedAt
     +__construct(customerId, simCardId, mobileNumberId)
     +getId() : int
-    +processActivation(User user) : void
-    +approve(User user) : void
-    +reject(User user, string reason) : void
-    +activate() : void
+    +processActivation(string processedBy) : void
+    +activate(string processedBy) : void
+    +reject(string reason, string processedBy) : void
     +getStatus() : ActivationStatus
     +validateDocuments() : bool
-    +performRegulatoryCheck() : bool
-    +addAuditLog(string action, User user) : void
+    +addAuditNote(string note, string processedBy) : void
+    +getAuditTrail() : string
 }
 
-class User {
-    -int id
-    -string username
-    -string email
-    -string passwordHash
-    -string firstName
-    -string lastName
-    -UserRole role
-    -bool isActive
-    -DateTime lastLogin
-    -DateTime createdAt
-    -DateTime updatedAt
-    +__construct(username, email, firstName, lastName, role)
-    +getId() : int
-    +getUsername() : string
-    +authenticate(string password) : bool
-    +hasPermission(string permission) : bool
-    +canProcessActivation() : bool
-    +canVerifyDocuments() : bool
-    +updateLastLogin() : void
-}
-
-class RegulatoryRule {
-    -int id
-    -string ruleName
-    -string ruleCode
-    -string description
-    -string validationLogic
-    -bool isActive
-    -string countryCode
-    -DateTime effectiveDate
-    -DateTime expiryDate
-    -DateTime createdAt
-    -DateTime updatedAt
-    +__construct(ruleName, ruleCode, validationLogic)
-    +getId() : int
-    +getRuleName() : string
-    +isActive() : bool
-    +isEffective() : bool
-    +validateDocument(CustomerDocument document) : ValidationResult
-    +getValidationLogic() : string
-}
-
-class DocumentValidation {
-    -int id
-    -int customerDocumentId
-    -int regulatoryRuleId
-    -ValidationStatus validationStatus
-    -string validationResult
-    -DateTime validatedAt
-    -int validatedBy
-    -DateTime createdAt
-    +__construct(customerDocumentId, regulatoryRuleId)
-    +getId() : int
-    +validate(User user) : ValidationResult
-    +getStatus() : ValidationStatus
-    +getResult() : string
-    +isPassed() : bool
-}
-
-class ActivationAuditLog {
-    -int id
-    -int activationId
-    -int userId
-    -string action
-    -string oldStatus
-    -string newStatus
-    -string comments
-    -string ipAddress
-    -string userAgent
-    -DateTime createdAt
-    +__construct(activationId, userId, action)
-    +getId() : int
-    +getAction() : string
-    +getTimestamp() : DateTime
-    +getComments() : string
-    +logStatusChange(string oldStatus, string newStatus) : void
-}
-
-' Service Classes for Business Logic
-class SimActivationService {
-    -CustomerRepository customerRepo
-    -SimCardRepository simRepo
-    -MobileNumberRepository numberRepo
-    -DocumentValidationService docValidationService
-    -RegulatoryComplianceService regulatoryService
-    -AuditService auditService
-    +__construct(repositories, services)
+' Service Class
+class ActivationService {
     +initiateActivation(customerId, simCardId, mobileNumberId) : SimActivation
-    +processActivationRequest(activationId, userId) : bool
-    +validateCustomerDocuments(customerId) : bool
-    +performRegulatoryChecks(activationId) : bool
-    +activateSim(activationId, userId) : bool
-    +rejectActivation(activationId, userId, reason) : bool
-}
-
-class DocumentValidationService {
-    -RegulatoryRuleRepository ruleRepo
-    -DocumentValidationRepository validationRepo
-    +__construct(repositories)
-    +validateDocument(CustomerDocument document) : ValidationResult
-    +validateAllDocuments(customerId) : bool
-    +getRegulatoryRules(documentType) : array
-    +performValidation(document, rule) : ValidationResult
-}
-
-class RegulatoryComplianceService {
-    -RegulatoryRuleRepository ruleRepo
-    +__construct(ruleRepo)
-    +checkCompliance(SimActivation activation) : bool
-    +validateAgainstRules(documents) : bool
-    +getApplicableRules(countryCode) : array
-    +isCompliant(validationResults) : bool
-}
-
-class AuditService {
-    -ActivationAuditLogRepository auditRepo
-    +__construct(auditRepo)
-    +logAction(activationId, userId, action, comments) : void
-    +logStatusChange(activationId, userId, oldStatus, newStatus) : void
-    +getAuditTrail(activationId) : array
-    +generateComplianceReport() : array
+    +processActivation(activationId, string processedBy) : bool
+    +validateDocuments(customerId) : bool
+    +performRegulatoryCompliance(customerId) : bool
+    +activateSim(activationId, string processedBy) : bool
+    +getActivationAuditTrail(activationId) : array
 }
 
 ' Enumerations
 enum SimStatus {
-    INACTIVE
+    AVAILABLE
+    ASSIGNED
     ACTIVE
-    SUSPENDED
-    TERMINATED
 }
 
 enum NumberStatus {
     AVAILABLE
     ASSIGNED
-    RESERVED
-    BLOCKED
-}
-
-enum NumberType {
-    PREPAID
-    POSTPAID
 }
 
 enum ActivationStatus {
     PENDING
-    DOCUMENT_VERIFICATION
-    APPROVED
+    VERIFIED
     ACTIVATED
     REJECTED
 }
@@ -285,72 +135,20 @@ enum VerificationStatus {
     PENDING
     VERIFIED
     REJECTED
-    EXPIRED
-}
-
-enum ValidationStatus {
-    PENDING
-    PASSED
-    FAILED
-}
-
-enum RegulatoryStatus {
-    PENDING
-    PASSED
-    FAILED
-}
-
-enum UserRole {
-    ADMIN
-    OPERATOR
-    SUPERVISOR
-}
-
-class ValidationResult {
-    -bool isValid
-    -string message
-    -array errors
-    +__construct(isValid, message)
-    +isValid() : bool
-    +getMessage() : string
-    +getErrors() : array
-    +addError(string error) : void
 }
 
 ' Relationships
 Customer ||--o{ CustomerDocument : has
 Customer ||--o{ SimActivation : requests
-
 DocumentType ||--o{ CustomerDocument : defines
+SimCard ||--o{ SimActivation : uses
+MobileNumber ||--o{ SimActivation : uses
 
-SimCard ||--o{ SimActivation : assigned_to
-MobileNumber ||--o{ SimActivation : assigned_to
-
-User ||--o{ SimActivation : processes
-User ||--o{ CustomerDocument : verifies
-User ||--o{ ActivationAuditLog : creates
-
-SimActivation ||--o{ ActivationAuditLog : tracked_by
-
-CustomerDocument ||--o{ DocumentValidation : validated_by
-RegulatoryRule ||--o{ DocumentValidation : applies_to
-
-' Dependencies
-SimActivationService ..> Customer : uses
-SimActivationService ..> SimCard : uses
-SimActivationService ..> MobileNumber : uses
-SimActivationService ..> SimActivation : manages
-SimActivationService ..> DocumentValidationService : depends_on
-SimActivationService ..> RegulatoryComplianceService : depends_on
-SimActivationService ..> AuditService : depends_on
-
-DocumentValidationService ..> CustomerDocument : validates
-DocumentValidationService ..> RegulatoryRule : applies
-DocumentValidationService ..> ValidationResult : returns
-
-RegulatoryComplianceService ..> RegulatoryRule : uses
-RegulatoryComplianceService ..> SimActivation : checks
-
-AuditService ..> ActivationAuditLog : creates
+' Service Dependencies
+ActivationService ..> Customer : manages
+ActivationService ..> SimCard : assigns
+ActivationService ..> MobileNumber : assigns
+ActivationService ..> SimActivation : processes
+ActivationService ..> CustomerDocument : validates
 
 @enduml
