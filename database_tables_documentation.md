@@ -20,6 +20,26 @@ This document provides a detailed explanation of each table's function in the te
   - `address` - Customer location information
 - **Business Role**: Foundation for all SIM activation requests; validates customer eligibility
 - **Relationships**: Links to `customer_documents` and `sim_activations`
+- **Constraints**: `email` must be unique
+- **create table query**: 
+```sql
+CREATE TABLE customers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    phone VARCHAR(20),
+    date_of_birth DATE NOT NULL,
+    address TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+- **create query**: 
+```sql
+INSERT INTO customers (first_name, last_name, email, phone, date_of_birth, address)
+VALUES ('John', 'Doe', 'john.doe@example.com', '1234567890', '1990-01-01', '123 Main St');
+``` 
 
 ### **2. `sim_cards`** 
 **Function**: Physical SIM card inventory management
@@ -33,6 +53,21 @@ This document provides a detailed explanation of each table's function in the te
   - `batch_number` - Manufacturing batch tracking
 - **Business Role**: Manages SIM lifecycle and inventory control
 - **Relationships**: Links to `sim_activations`
+- **create table query**: 
+```sql
+CREATE TABLE sim_cards (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    iccid VARCHAR(20) UNIQUE NOT NULL,
+    imsi VARCHAR(15),
+    puk_code VARCHAR(8) NOT NULL,
+    pin_code VARCHAR(4) NOT NULL,
+    status ENUM('inactive', 'active', 'suspended', 'terminated') DEFAULT 'inactive',
+    batch_number VARCHAR(50),
+    manufactured_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
 
 ### **3. `mobile_numbers`**
 **Function**: Available phone number pool management
@@ -45,8 +80,19 @@ This document provides a detailed explanation of each table's function in the te
   - `number_type` - Service type (prepaid, postpaid)
 - **Business Role**: Ensures unique number assignment and supports different service plans
 - **Relationships**: Links to `sim_activations`
-
----
+- **create table query**: 
+```sql
+CREATE TABLE mobile_numbers (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    number VARCHAR(15) UNIQUE NOT NULL,
+    country_code VARCHAR(5) NOT NULL,
+    area_code VARCHAR(10),
+    status ENUM('available', 'assigned', 'reserved', 'blocked') DEFAULT 'available',
+    number_type ENUM('prepaid', 'postpaid') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
 
 ## **Document Management Tables**
 
@@ -61,6 +107,23 @@ This document provides a detailed explanation of each table's function in the te
   - `regulatory_requirement` - Legal compliance notes
 - **Business Role**: Standardizes document requirements across different regions/regulations
 - **Relationships**: Links to `customer_documents`
+- **create table query**: 
+```sql
+CREATE TABLE document_types (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    code VARCHAR(20) UNIQUE NOT NULL,
+    is_mandatory BOOLEAN DEFAULT FALSE,
+    regulatory_requirement TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+- **insert query**: 
+```sql
+INSERT INTO document_types (name, code, is_mandatory, regulatory_requirement)
+VALUES ('Passport', 'PASS', TRUE, 'Required for international travel');
+```
 
 ### **5. `customer_documents`**
 **Function**: Stores uploaded customer identity documents
