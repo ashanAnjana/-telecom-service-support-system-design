@@ -1,0 +1,176 @@
+// Telecom Service Support System - Database Schema
+// SIM Activation Workflow Design for MySQL
+
+Project telecom_support_system {
+  database_type: 'MySQL'
+  Note: 'Telecom Service Support System for SIM Activation Workflow'
+}
+
+// Core Entities
+
+Table customers {
+  id int [pk, increment]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  email varchar(255) [unique, not null]
+  phone varchar(20)
+  date_of_birth date [not null]
+  address text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  
+  Note: 'Customer information for SIM activation'
+}
+
+Table sim_cards {
+  id int [pk, increment]
+  iccid varchar(20) [unique, not null]
+  imsi varchar(15) [unique]
+  puk_code varchar(8) [not null]
+  pin_code varchar(4) [not null]
+  status enum('inactive', 'active', 'suspended', 'terminated') [default: 'inactive']
+  batch_number varchar(50)
+  manufactured_date date
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  
+  Note: 'Physical SIM card details'
+}
+
+Table mobile_numbers {
+  id int [pk, increment]
+  number varchar(15) [unique, not null]
+  country_code varchar(5) [not null]
+  area_code varchar(10)
+  status enum('available', 'assigned', 'reserved', 'blocked') [default: 'available']
+  number_type enum('prepaid', 'postpaid') [not null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  
+  Note: 'Available mobile numbers for assignment'
+}
+
+Table document_types {
+  id int [pk, increment]
+  name varchar(100) [not null]
+  code varchar(20) [unique, not null]
+  description text
+  is_mandatory boolean [default: false]
+  regulatory_requirement text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Types of identity documents accepted'
+}
+
+Table customer_documents {
+  id int [pk, increment]
+  customer_id int [ref: > customers.id]
+  document_type_id int [ref: > document_types.id]
+  document_number varchar(100) [not null]
+  document_file_path varchar(500)
+  issue_date date
+  expiry_date date
+  issuing_authority varchar(200)
+  verification_status enum('pending', 'verified', 'rejected', 'expired') [default: 'pending']
+  verified_at timestamp [null]
+  verified_by int [ref: > users.id]
+  rejection_reason text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  
+  Note: 'Customer identity documents for verification'
+}
+
+Table sim_activations {
+  id int [pk, increment]
+  customer_id int [ref: > customers.id]
+  sim_card_id int [ref: > sim_cards.id]
+  mobile_number_id int [ref: > mobile_numbers.id]
+  activation_status enum('pending', 'document_verification', 'approved', 'activated', 'rejected') [default: 'pending']
+  request_date timestamp [default: `CURRENT_TIMESTAMP`]
+  activation_date timestamp [null]
+  processed_by int [ref: > users.id]
+  rejection_reason text
+  regulatory_check_status enum('pending', 'passed', 'failed') [default: 'pending']
+  regulatory_check_date timestamp [null]
+  notes text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  
+  Note: 'SIM activation requests and their status'
+}
+
+Table users {
+  id int [pk, increment]
+  username varchar(100) [unique, not null]
+  email varchar(255) [unique, not null]
+  password_hash varchar(255) [not null]
+  first_name varchar(100) [not null]
+  last_name varchar(100) [not null]
+  role enum('admin', 'operator', 'supervisor') [not null]
+  is_active boolean [default: true]
+  last_login timestamp [null]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  
+  Note: 'System users for processing activations'
+}
+
+Table activation_audit_log {
+  id int [pk, increment]
+  activation_id int [ref: > sim_activations.id]
+  user_id int [ref: > users.id]
+  action varchar(100) [not null]
+  old_status varchar(50)
+  new_status varchar(50)
+  comments text
+  ip_address varchar(45)
+  user_agent text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Audit trail for activation process changes'
+}
+
+Table regulatory_rules {
+  id int [pk, increment]
+  rule_name varchar(200) [not null]
+  rule_code varchar(50) [unique, not null]
+  description text
+  validation_logic text
+  is_active boolean [default: true]
+  country_code varchar(5)
+  effective_date date [not null]
+  expiry_date date
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`]
+  
+  Note: 'Regulatory compliance rules for document validation'
+}
+
+Table document_validations {
+  id int [pk, increment]
+  customer_document_id int [ref: > customer_documents.id]
+  regulatory_rule_id int [ref: > regulatory_rules.id]
+  validation_status enum('pending', 'passed', 'failed') [default: 'pending']
+  validation_result text
+  validated_at timestamp [null]
+  validated_by int [ref: > users.id]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  Note: 'Individual document validation against regulatory rules'
+}
+
+// Indexes for performance
+Table indexes {
+  customers_email: customers.email
+  sim_cards_iccid: sim_cards.iccid
+  sim_cards_status: sim_cards.status
+  mobile_numbers_number: mobile_numbers.number
+  mobile_numbers_status: mobile_numbers.status
+  sim_activations_status: sim_activations.activation_status
+  sim_activations_customer: sim_activations.customer_id
+  customer_documents_customer: customer_documents.customer_id
+  customer_documents_status: customer_documents.verification_status
+  activation_audit_log_activation: activation_audit_log.activation_id
+  document_validations_document: document_validations.customer_document_id
+}
