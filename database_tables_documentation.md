@@ -101,7 +101,7 @@ CREATE TABLE mobile_numbers (
 
 - **Primary Purpose**: Configure what documents are required for activation
 - **Key Fields**:
-  - `name` - Document type name (e.g., "Passport", "Driver's License")
+  - `name` - Document type name (e.g., "Passport", "NIC")
   - `code` - Unique identifier code
   - `is_mandatory` - Whether document is required
   - `regulatory_requirement` - Legal compliance notes
@@ -122,7 +122,9 @@ CREATE TABLE document_types (
 - **insert query**: 
 ```sql
 INSERT INTO document_types (name, code, is_mandatory, regulatory_requirement)
-VALUES ('Passport', 'PASS', TRUE, 'Required for international travel');
+VALUES ('Passport', 'PASS', TRUE, 'Required for international travel'),
+('National Identity Card', 'NIC', TRUE, 'Required for local travel'),
+('Driver''s License', 'DL', TRUE, 'Required for local travel');
 ```
 
 ### **5. `customer_documents`**
@@ -141,10 +143,35 @@ VALUES ('Passport', 'PASS', TRUE, 'Required for international travel');
 - **Relationships**: Links `customers` to `document_types`, connects to `document_validations`
 
 ---
-
+- **create table query**: 
+```sql
+CREATE TABLE customer_documents (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    document_type_id INT NOT NULL,
+    document_number VARCHAR(100) NOT NULL,
+    document_file_path VARCHAR(500),
+    issue_date DATE,
+    expiry_date DATE,
+    issuing_authority VARCHAR(200),
+    verification_status ENUM('pending', 'verified', 'rejected', 'expired') DEFAULT 'pending',
+    verified_at TIMESTAMP NULL,
+    verified_by INT,
+    rejection_reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (document_type_id) REFERENCES document_types(id)
+);
+```
+- **insert query**: 
+```sql
+INSERT INTO customer_documents (customer_id, document_type_id, document_number, document_file_path, issue_date, expiry_date, issuing_authority, verification_status, verified_at, verified_by, rejection_reason)
+VALUES (1, 1, '123456789', 'path/to/document.pdf', '2023-01-01', '2024-01-01', 'Government of Sri Lanka', 'verified', '2023-01-01', 1, 'Document is valid');
+```
 ## **Process Management Tables**
 
-### **6. `sim_activations`** ⭐
+### **6. `sim_activations`** (main table)
 **Function**: **Central workflow orchestrator** for SIM activation process
 
 - **Primary Purpose**: Manages complete activation lifecycle from request to completion
@@ -157,6 +184,34 @@ VALUES ('Passport', 'PASS', TRUE, 'Required for international travel');
   - `rejection_reason` - Failure explanation
 - **Business Role**: **Most critical table** - coordinates entire activation workflow
 - **Relationships**: Central hub connecting customers, SIM cards, mobile numbers, and users
+- **create table query**: 
+```sql
+CREATE TABLE sim_activations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_id INT NOT NULL,
+    sim_card_id INT NOT NULL,
+    mobile_number_id INT NOT NULL,
+    activation_status ENUM('pending', 'document_verification', 'approved', 'activated', 'rejected') DEFAULT 'pending',
+    request_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activation_date TIMESTAMP NULL,
+    processed_by INT,
+    rejection_reason TEXT,
+    regulatory_check_status ENUM('pending', 'passed', 'failed') DEFAULT 'pending',
+    regulatory_check_date TIMESTAMP NULL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id),
+    FOREIGN KEY (sim_card_id) REFERENCES sim_cards(id),
+    FOREIGN KEY (mobile_number_id) REFERENCES mobile_numbers(id),
+    FOREIGN KEY (processed_by) REFERENCES users(id)
+);
+```
+- **insert query**: 
+```sql
+INSERT INTO sim_activations (customer_id, sim_card_id, mobile_number_id, activation_status, request_date, processed_by, rejection_reason)
+VALUES (1, 1, 1, 'pending', '2023-01-01', 1, 'Document verification failed');
+```
 
 ### **7. `users`**
 **Function**: System operator authentication and authorization
@@ -171,7 +226,28 @@ VALUES ('Passport', 'PASS', TRUE, 'Required for international travel');
   - `last_login` - Activity tracking
 - **Business Role**: Role-based access control for activation processing
 - **Relationships**: Links to `sim_activations`, `customer_documents`, `activation_audit_log`
-
+- **create table query**: 
+```sql
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(100) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    role ENUM('admin', 'operator', 'supervisor') NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    last_login TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (role) REFERENCES roles(id)
+);
+```
+- **insert query**: 
+```sql
+INSERT INTO users (username, email, password_hash, first_name, last_name, role, is_active)
+VALUES ('admin', 'admin@example.com', 'hashed_password', 'Admin', 'User', 'admin', TRUE);
+```
 ---
 
 ## **Compliance & Audit Tables**
@@ -203,6 +279,29 @@ VALUES ('Passport', 'PASS', TRUE, 'Required for international travel');
   - `is_active` - Current status
 - **Business Role**: Enables flexible compliance with different regional regulations
 - **Relationships**: Links to `document_validations`
+- **create table query**: 
+```sql
+CREATE TABLE regulatory_rules (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    rule_name VARCHAR(100) NOT NULL,
+    rule_code VARCHAR(20) UNIQUE NOT NULL,
+    description TEXT,
+    validation_logic TEXT,
+    country_code VARCHAR(5) NOT NULL,
+    effective_date DATE,
+    expiry_date DATE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (country_code) REFERENCES countries(code)
+);
+```
+- **insert query**: 
+```sql
+INSERT INTO regulatory_rules (rule_name, rule_code, description, validation_logic, country_code, effective_date, expiry_date, is_active)
+VALUES ('web activation', 'RULE1', 'Description of web activation', 'validation logic for web activation', 'LK', '2023-01-01', '2024-01-01', TRUE),
+('api activation', 'RULE2', 'Description of api activation', 'validation logic for api activation', 'LK', '2023-01-01', '2024-01-01', TRUE);
+```
 
 ### **10. `document_validations`**
 **Function**: Individual validation results for each document against regulatory rules
@@ -216,7 +315,22 @@ VALUES ('Passport', 'PASS', TRUE, 'Required for international travel');
   - `validated_at`, `validated_by` - Processing details
 - **Business Role**: Provides granular validation tracking for compliance
 - **Relationships**: Links `customer_documents` to `regulatory_rules`
-
+- **create table query**: 
+```sql
+CREATE TABLE document_validations (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    customer_document_id INT NOT NULL,
+    regulatory_rule_id INT NOT NULL,
+    validation_status ENUM('pending', 'passed', 'failed') DEFAULT 'pending',
+    validation_result TEXT,
+    validated_at TIMESTAMP NULL,
+    validated_by INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_document_id) REFERENCES customer_documents(id),
+    FOREIGN KEY (regulatory_rule_id) REFERENCES regulatory_rules(id)
+);
+```
 ---
 
 ## **Performance Optimization**

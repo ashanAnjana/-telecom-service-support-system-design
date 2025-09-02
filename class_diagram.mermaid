@@ -328,36 +328,36 @@ classDiagram
     }
 
     %% Relationships
-    Customer ||--o{ CustomerDocument : "has"
-    Customer ||--o{ SimActivation : "requests"
+    Customer ||--o{ CustomerDocument : has
+    Customer ||--o{ SimActivation : requests
     
-    DocumentType ||--o{ CustomerDocument : "defines"
+    DocumentType ||--o{ CustomerDocument : defines
     
-    SimCard ||--o{ SimActivation : "assigned to"
-    MobileNumber ||--o{ SimActivation : "assigned to"
+    SimCard ||--o{ SimActivation : assigned_to
+    MobileNumber ||--o{ SimActivation : assigned_to
     
-    User ||--o{ SimActivation : "processes"
-    User ||--o{ CustomerDocument : "verifies"
-    User ||--o{ ActivationAuditLog : "creates"
+    User ||--o{ SimActivation : processes
+    User ||--o{ CustomerDocument : verifies
+    User ||--o{ ActivationAuditLog : creates
     
-    SimActivation ||--o{ ActivationAuditLog : "tracked by"
+    SimActivation ||--o{ ActivationAuditLog : tracked_by
     
-    CustomerDocument ||--o{ DocumentValidation : "validated by"
-    RegulatoryRule ||--o{ DocumentValidation : "applies to"
+    CustomerDocument ||--o{ DocumentValidation : validated_by
+    RegulatoryRule ||--o{ DocumentValidation : applies_to
     
-    SimActivationService ..> Customer : "uses"
-    SimActivationService ..> SimCard : "uses"
-    SimActivationService ..> MobileNumber : "uses"
-    SimActivationService ..> SimActivation : "manages"
-    SimActivationService ..> DocumentValidationService : "depends on"
-    SimActivationService ..> RegulatoryComplianceService : "depends on"
-    SimActivationService ..> AuditService : "depends on"
+    SimActivationService ..> Customer : uses
+    SimActivationService ..> SimCard : uses
+    SimActivationService ..> MobileNumber : uses
+    SimActivationService ..> SimActivation : manages
+    SimActivationService ..> DocumentValidationService : depends_on
+    SimActivationService ..> RegulatoryComplianceService : depends_on
+    SimActivationService ..> AuditService : depends_on
     
-    DocumentValidationService ..> CustomerDocument : "validates"
-    DocumentValidationService ..> RegulatoryRule : "applies"
-    DocumentValidationService ..> ValidationResult : "returns"
+    DocumentValidationService ..> CustomerDocument : validates
+    DocumentValidationService ..> RegulatoryRule : applies
+    DocumentValidationService ..> ValidationResult : returns
     
-    RegulatoryComplianceService ..> RegulatoryRule : "uses"
-    RegulatoryComplianceService ..> SimActivation : "checks"
+    RegulatoryComplianceService ..> RegulatoryRule : uses
+    RegulatoryComplianceService ..> SimActivation : checks
     
-    AuditService ..> ActivationAuditLog : "creates"
+    AuditService ..> ActivationAuditLog : creates
