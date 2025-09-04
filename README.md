@@ -87,6 +87,9 @@ A streamlined design for **SIM card activation workflow** focusing on the essent
 - **4 enums**: Type-safe status management
 - **Enhanced methods**: Audit tracking and regulatory compliance support
 
+**View Diagrams:**
+   - **Class Diagram:** Open `class_diagram.puml` in PlantUML viewer
+   - **ER Diagram:** View `er_diagram.png` for database relationships
 ---
 
 ## File Structure
