@@ -74,12 +74,6 @@ A streamlined design for **SIM card activation workflow** focusing on the essent
 2. **PHP object-oriented design** - Modern OOP principles
 3. **File upload capability** - Document storage for verification
 
-### **Simplification Decisions**
-1. **Removed complex audit trails** - Basic tracking in activation entity
-2. **Eliminated user management complexity** - Focus on core workflow
-3. **Simplified regulatory compliance** - Basic document validation
-4. **Removed advanced features** - No bulk processing, notifications, etc.
-
 ## System Components
 
 ### **Database Schema** (`schema.dbml`)
@@ -99,11 +93,8 @@ A streamlined design for **SIM card activation workflow** focusing on the essent
 ## File Structure
 ```
 /
-├── schema.dbml                    # Simplified database schema
-├── class_diagram.puml            # Streamlined class diagram  
-├── class_diagram.mermaid         # Alternative diagram format
-├── README.md                     # This documentation
-└── database_tables_documentation.md  # Detailed table descriptions
+├── schema.dbml                    # Database schema design
+├── class_diagram.puml             # Object-oriented class diagram
+├── README.md                      # Explanation of design & rationale
+└── diagrams/                      # Optional: rendered images of diagrams
 ```
-
-This simplified design maintains the essential SIM activation workflow while removing unnecessary complexity, making it easier to understand and implement.
