@@ -36,7 +36,6 @@ A streamlined design for **SIM card activation workflow** focusing on the essent
 - Simple status progression (pending → verified → activated)
 
 ### Design Principles
-- **Simplicity**: Focus on core SIM activation workflow
 - **Clarity**: Clear entity relationships and responsibilities
 - **Maintainability**: Minimal complexity while meeting requirements
 
