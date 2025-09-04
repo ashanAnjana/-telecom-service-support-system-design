@@ -1,4 +1,4 @@
-# Simplified Telecom SIM Activation System
+# Telecom Service Support System Design
 
 ## Overview
 
