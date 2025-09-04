@@ -141,8 +141,8 @@ enum VerificationStatus {
 Customer ||--o{ CustomerDocument : has
 Customer ||--o{ SimActivation : requests
 DocumentType ||--o{ CustomerDocument : defines
-SimCard ||--o{ SimActivation : uses
-MobileNumber ||--o{ SimActivation : uses
+SimCard ||--|| SimActivation : uses
+MobileNumber ||--|| SimActivation : uses
 
 ' Service Dependencies
 ActivationService ..> Customer : manages

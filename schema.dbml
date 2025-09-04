@@ -95,8 +95,8 @@ Table customer_documents {
 Table sim_activations {
   id int [pk, increment]
   customer_id int [ref: > customers.id, not null]
-  sim_card_id int [ref: > sim_cards.id, not null]
-  mobile_number_id int [ref: > mobile_numbers.id, not null]
+  sim_card_id int [ref: - sim_cards.id, not null, unique]
+  mobile_number_id int [ref: - mobile_numbers.id, not null, unique]
   status enum('pending', 'verified', 'activated', 'rejected') [default: 'pending']
   request_date timestamp [default: `now()`]
   activation_date timestamp
@@ -114,7 +114,7 @@ Table sim_activations {
     last_status_change
   }
   
-  Note: 'SIM activation requests with basic audit tracking'
+  Note: 'SIM activation requests with one-to-one relationships to SIM cards and mobile numbers'
 }
 
 Table users {
@@ -177,17 +177,3 @@ Table document_validations {
   Note: 'Individual document validation against regulatory rules'
 }
 
-// Indexes for performance
-Table indexes {
-  customers_email: customers.email
-  sim_cards_iccid: sim_cards.iccid
-  sim_cards_status: sim_cards.status
-  mobile_numbers_number: mobile_numbers.number
-  mobile_numbers_status: mobile_numbers.status
-  sim_activations_status: sim_activations.status
-  sim_activations_customer: sim_activations.customer_id
-  customer_documents_customer: customer_documents.customer_id
-  customer_documents_status: customer_documents.verification_status
-  activation_audit_log_activation: activation_audit_log.activation_id
-  document_validations_document: document_validations.customer_document_id
-}
